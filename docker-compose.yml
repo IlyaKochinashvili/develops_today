@@ -1,0 +1,48 @@
+version: '3.3'
+
+services:
+  web:
+    build: .
+    command: gunicorn develops_today_test.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    depends_on:
+      - db
+  db:
+    image: postgres:12.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - 5435:5432
+    environment:
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django
+  redis:
+    image: "redis:alpine"
+  celery:
+    build: .
+    command: celery -A develops_today_test worker -l info
+    env_file:
+      - .env
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+  celery-beat:
+    build: .
+    env_file:
+      - .env
+    command: celery -A develops_today_test beat -l info
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+volumes:
+  postgres_data:
